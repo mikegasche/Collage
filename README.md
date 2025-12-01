@@ -1,77 +1,104 @@
 # Mike's Collage
 
-Organische Collagen aus Bildern erstellen – optimierte Flächennutzung, minimale Überlappung, optionale Rotation und transparenter Hintergrund.
+<img src="app/resources/title512.png" width="200" height="200" alt="Collage Logo">
+
+Create **organic collages from images** – optimized space usage, minimal overlap, optional rotation, and transparent background.  
+
+The app offers both a **Graphical User Interface (GUI)** and **CLI options**.
+
+## Features
+
+- Generate collages from any folder of images (.jpg, .jpeg, .png)  
+- Optimized usage of the canvas with minimal overlap  
+- Optional rotation of individual images  
+- Transparent background support  
+- GUI with intuitive input fields and easy execution  
+- CLI for automated workflows  
+- Flexible layout with configurable rows and iterations  
 
 ## Installation
 
-1. Python 3.x (>=3.9) installieren  
-2. Virtuelle Umgebung einrichten (empfohlen):  
-   
-   ```
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Abhängigkeiten installieren:  
-   
-   ```
-   pip install pillow
-   ```
+1. **See** `bin/setup.sh`
 
-## Nutzung:
+2. **Optional:** Clone the GitHub repository
+```
+git clone https://github.com/mikegasche/collage.git
+cd collage
+```
+
+## GUI Usage
+
+1. **Launch the app**:
+Use a bundled app for your operating system in the release section or start it by console:
+```
+python3 app/collage_gui.py
+```
+
+2. **Configure options**:
+- **Input Folder**: Folder with images  
+- **Output Folder**: Destination folder for the collage  
+- **Output File**: Output filename (.png recommended)  
+- **Collage Width / Height**: Canvas size  
+- **Background Color**: #RRGGBB or `transparent`  
+- **Max Rotation**: Maximum rotation angle  
+- **Overlap Factor**: Degree of overlap  
+- **Rows**: Number of rows (0 = auto)  
+- **Iterations**: Number of layout variations  
+
+3. Click **Run** to generate the collage.
+
+---
+
+## CLI Usage
 
 ```
-python3 make_rectpack_collage.py --input INPUT_DIR --width WIDTH --height HEIGHT --output OUTPUT_FILE [OPTIONS]
+python3 app/collage.py --input INPUT_DIR --width WIDTH --height HEIGHT --output OUTPUT_FILE [OPTIONS]
 ```
 
 ### Parameter
 
-- --input INPUT_DIR : Ordner mit Bildern (.jpg, .jpeg, .png)  
-- --width WIDTH : Breite des Gesamtbildes  
-- --height HEIGHT : Höhe des Gesamtbildes  
-- --output OUTPUT_FILE : Name der Collage-Ausgabedatei (.png empfohlen)  
+- --input INPUT_DIR : Folders with images (.jpg, .jpeg, .png)  
+- --width WIDTH : Width of collage
+- --height HEIGHT : Height of collage
+- --output OUTPUT_FILE : Name of collage output file (.png recommended)  
 
-### Optionale Parameter
+### Optional Parameters
 
-- --bgcolor BGCOLOR : Hintergrundfarbe (#RRGGBB, R,G,B) oder transparent  
-- --rows N : Anzahl Reihen (0 = automatisch)  
-- --overlap-factor F : Maximaler Verschiebungs-/Überlappungsfaktor (Standard: 0.05)  
-- --max-rotation DEG : Maximaler Drehwinkel in Grad (Standard: 5)  
-- --iterations N : Anzahl Layout-Varianten zur Optimierung (Standard: 15)  
+- --bgcolor BGCOLOR : Background color (#RRGGBB, R,G,B) or transparent  
+- --rows N : Number of rows (0 = auto)  
+- --overlap-factor F : Maximum overlap factor (default: 0.05)  
+- --max-rotation DEG : Maximum rotation in degrees (default: 5)  
+- --iterations N : Number of layout variations (default: 15)  
 
-## Tipps für optimale Ergebnisse
+## Tips for Best Results
 
-| Bildanzahl | Canvas    | Rows | Overlap   | Rotation | Iterationen | Bemerkung                                              |
-| ---------- | --------- | ---- | --------- | -------- | ----------- | ------------------------------------------------------ |
-| 6–8        | 2560x1440 | 2    | 0.05–0.08 | 0–5°     | 15–20       | Gleichmäßig obere & untere Reihe, minimale Überlappung |
-| 9–12       | 2560x1440 | 3    | 0.05–0.08 | 0–5°     | 20–25       | 3 Reihen, Fläche wird gut genutzt                      |
-| 12–20      | 2560x1440 | 3–4  | 0.05–0.1  | 0–5°     | 25–40       | Iterationen erhöhen für bessere Optimierung            |
-| <6         | beliebig  | 1–2  | 0.03–0.05 | 0–5°     | 10–15       | Einzelne Reihe oder automatisch                        |
+| Number of Images | Canvas    | Rows | Overlap   | Rotation | Iterations | Notes                                               |
+| ---------------- | --------- | ---- | --------- | -------- | ---------- | -------------------------------------------------- |
+| 6–8              | 2560x1440 | 2    | 0.05–0.08 | 0–5°     | 15–20      | Even upper & lower rows, minimal overlap          |
+| 9–12             | 2560x1440 | 3    | 0.05–0.08 | 0–5°     | 20–25      | 3 rows, good canvas utilization                   |
+| 12–20            | 2560x1440 | 3–4  | 0.05–0.1  | 0–5°     | 25–40      | Increase iterations for better optimization      |
+| <6               | any       | 1–2  | 0.03–0.05 | 0–5°     | 10–15      | Single row or auto                                |
 
-## Hinweise
+## Example Commands
 
-- Rows = 0 → Script wählt automatisch die beste Anzahl Reihen  
-- Overlap-Factor → kleine Werte = wenig Überlappung, große Werte = organischer, verspielter Look  
-- Max-Rotation → kleine Winkel für sichtbare Bilder, größere Winkel für künstlerische Wirkung  
-- Iterations → je mehr Iterationen, desto besser das Ergebnis, dauert aber länger  
-- Bgcoulor transparent → Collage mit Alpha-Kanal, perfekt für Layering  
+1. **Standard Collage with GUI**  
+   Launch the app, select input/output folders, and click **Run**.
 
-## Beispiel-Aufrufe
+2. **Standard Collage with CLI**:
 
-1. Standard-Collage mit 2 Reihen und leichtem Overlap:  
-   
-   ```
-   python3 make_rectpack_collage.py --input ./bilder --width 2560 --height 1440 --output collage.png --rows 2 --overlap-factor 0.05 --max-rotation 5 --iterations 20
-   ```
+```
+python3 make_rectpack_collage.py --input ./images --width 2560 --height 1440 --output collage.png --rows 2 --overlap-factor 0.05 --max-rotation 5 --iterations 20
+```
 
-2. Automatisches Layout für beliebige Bildanzahl, transparenter Hintergrund:  
-   
-   ```
-   python3 make_rectpack_collage.py --input ./bilder --width 2560 --height 1440 --output collage.png --bgcolor transparent --rows 0 --iterations 25
-   ```
+3. **Automatic layout, transparent background**:
 
-## Schema – Beispiel: 8 Bilder, 2 Reihen, minimale Überlappung:
+```
+python3 make_rectpack_collage.py --input ./images --width 2560 --height 1440 --output collage.png --bgcolor transparent --rows 0 --iterations 25
+```
 
-Obere Reihe (Bilder 1–4):
+## Layout Example – 8 Images, 2 Rows
+
+Upper row (images 1–4):
 
 ```
 +-------+  +-------+  +-------+  +-------+
@@ -79,7 +106,7 @@ Obere Reihe (Bilder 1–4):
 +-------+  +-------+  +-------+  +-------+
 ```
 
-Untere Reihe (Bilder 5–8):
+Lower row (images 5–8):
 
 ```
 +-------+  +-------+  +-------+  +-------+
@@ -87,13 +114,14 @@ Untere Reihe (Bilder 5–8):
 +-------+  +-------+  +-------+  +-------+
 ```
 
-**Hinweise zu Schema**:
+## Notes
 
-- Leichte Verschiebungen innerhalb Overlap-Factor möglich  
-- Rotation optional, kann auch 0° sein  
-- Größe proportional skaliert, um Gesamtfläche optimal zu nutzen  
-- Transparenter Hintergrund unterstützt Alpha-Kanal  
+- Rows = 0 → Automatically chooses the optimal number of rows  
+- Overlap Factor → Smaller = less overlap, larger = more organic layout  
+- Max Rotation → Small angles for visible images, larger for artistic effect  
+- Iterations → More iterations = better layout optimization, takes longer  
+- Transparent background → Supports alpha channel for layering  
 
-## Lizenz
+## License
 
-Dieses Script ist frei verwendbar und kann beliebig angepasst werden.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.

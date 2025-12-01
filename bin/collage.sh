@@ -8,7 +8,7 @@ source venv/bin/activate
 
 # Run Collage CLI with exact python in venv
 python app/collage.py \
-  --input ./input \
+  --input "/Users/Mike/Pictures/Familie/Mams/3 AI/A" \
   --width 2560 \
   --height 1440 \
   --bgcolor transparent \

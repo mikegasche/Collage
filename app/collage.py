@@ -24,7 +24,7 @@
 # Version:     1.1
 # Author:      Michael Gasche
 # Created:     2025-12
-# Product:     Mike's Collage
+# Product:     Collage
 # Description: Organic collage with row layout, optimized vertical scaling, and iterations
 
 
@@ -46,7 +46,7 @@ def parse_color(c):
     if "," in c:
         parts = [int(x.strip()) for x in c.split(",")]
         return tuple(parts[:3])
-    raise ValueError("Ungültige Farbe. Nutze '#RRGGBB', 'R,G,B' oder 'transparent'.")
+    raise ValueError("Invalid color. Use ‘#RRGGBB’, ‘R,G,B’, or ‘transparent’.")
 
 def load_images(input_dir):
     files = [f for f in os.listdir(input_dir) if f.lower().endswith((".jpg",".jpeg",".png"))]
@@ -60,7 +60,7 @@ def load_images(input_dir):
 def compute_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterations):
     n = len(items)
     if rows <= 0:
-        # Automatische Auswahl: Versuche 1..n Reihen
+        # Automatic selection: try 1..n rows
         best_layout = None
         best_score = None
         for r in range(1, n+1):
@@ -75,17 +75,17 @@ def compute_layout(items, canvas_width, canvas_height, rows, overlap_factor, ite
 
 def try_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterations):
     """
-    Teste Layout mit gegebener Anzahl Reihen iterativ
+    Test layout with given number of rows iteratively and return best found layout and score
     """
     best_layout = None
-    best_score = None  # freie Fläche + Überlappung
+    best_score = None  #  free area + overlap
     for it in range(iterations):
         layout = []
         shuffled = items.copy()
         random.shuffle(shuffled)
         per_row = math.ceil(len(shuffled)/rows)
 
-        # Berechne vorläufige Höhe pro Reihe proportional zur Anzahl Bilder
+        # Calculate provisional height per row proportional to number of images
         row_items = []
         row_heights = []
         for r in range(rows):
@@ -97,14 +97,14 @@ def try_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterati
             row_items.append(row)
             row_heights.append(max(item["h"] for item in row))
 
-        # Skalierung um Canvas-Höhe zu nutzen
+        # Scaling to utilize canvas height
         total_row_heights = sum(row_heights)
         if total_row_heights == 0:
             continue
         scale_y = min(1.0, canvas_height / total_row_heights)
         y = 0
         for rh, row in zip(row_heights, row_items):
-            # Breite pro Bild innerhalb der Reihe proportional skalieren
+            # Scale width per image within the row proportionally to row height
             total_width = sum(item["w"] * (rh/item["h"]) for item in row)
             scale_x = min(1.0, canvas_width / total_width)
             scale = min(scale_x, scale_y)
@@ -112,7 +112,7 @@ def try_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterati
             for item in row:
                 w_scaled = int(item["w"] * (rh/item["h"]) * scale)
                 h_scaled = int(rh * scale)
-                # kleine Verschiebung innerhalb Overlap-Faktor
+                # small shift within overlap factor
                 shift_x = int((random.random()-0.5) * overlap_factor * w_scaled)
                 shift_y = int((random.random()-0.5) * overlap_factor * h_scaled)
                 new_x = min(max(x + shift_x, 0), canvas_width - w_scaled)
@@ -121,7 +121,7 @@ def try_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterati
                 x += w_scaled
             y += int(rh * scale)
 
-        # Score: freie Fläche + Überschneidung zwischen Reihen
+        # Score: free area + overlap between rows
         used_area = sum(l["w"]*l["h"] for l in layout)
         free_area = canvas_width*canvas_height - used_area
         score = free_area
@@ -132,6 +132,10 @@ def try_layout(items, canvas_width, canvas_height, rows, overlap_factor, iterati
 
 def create_collage(input_dir, width, height, bgcolor, output, max_rotation=5, overlap_factor=0.05, rows=0, iterations=15):
     items = load_images(input_dir)
+
+    if not items:
+        return None
+    
     layout = compute_layout(items, width, height, rows, overlap_factor, iterations)
 
     if bgcolor == "transparent":
@@ -142,7 +146,7 @@ def create_collage(input_dir, width, height, bgcolor, output, max_rotation=5, ov
     for l in layout:
         img = l["img"].resize((l["w"], l["h"]), Image.LANCZOS)
 
-        # optionale Rotation
+        # optional rotation
         if max_rotation != 0:
             angle = random.uniform(-max_rotation, max_rotation)
             img = img.rotate(angle, expand=True)
@@ -156,19 +160,21 @@ def create_collage(input_dir, width, height, bgcolor, output, max_rotation=5, ov
         canvas.paste(img, (new_x, new_y), img)
 
     canvas.save(output)
-    print(f"Collage gespeichert: {output}")
+    print(f"Collage saved: {output}")
+    
+    return output
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Ordner mit Bildern")
+    parser.add_argument("--input", required=True, help="Folder with images")
     parser.add_argument("--width", type=int, default=2560)
     parser.add_argument("--height", type=int, default=1440)
     parser.add_argument("--bgcolor", default="#222222")
     parser.add_argument("--output", default="collage.png")
     parser.add_argument("--max-rotation", type=float, default=5)
     parser.add_argument("--overlap-factor", type=float, default=0.05)
-    parser.add_argument("--rows", type=int, default=0, help="0=automatisch, >0=Anzahl Reihen")
-    parser.add_argument("--iterations", type=int, default=15, help="Iterationen zur Layout-Optimierung")
+    parser.add_argument("--rows", type=int, default=0, help="0=automatic, >0=number of rows")
+    parser.add_argument("--iterations", type=int, default=15, help="Iterations for layout optimization")
     args = parser.parse_args()
 
     bgcolor_rgb = parse_color(args.bgcolor)

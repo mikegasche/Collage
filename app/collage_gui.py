@@ -24,7 +24,7 @@
 # Version:     1.1
 # Author:      Michael Gasche
 # Created:     2025-12
-# Product:     Mike's Collage
+# Product:     Collage
 # Description: Graphical user interface for generating image collages.
 
 
@@ -36,7 +36,9 @@ from datetime import datetime
 from PySide6.QtGui import QAction, QFont, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QMainWindow,
     QWidget,
+    QLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -58,7 +60,7 @@ from collage import create_collage, parse_color
 # App constants
 # --------------------------------------------------------------
 
-APP_NAME = "Mike's Collage"
+APP_NAME = "Collage"
 APP_VERSION = "1.1"
 FULL_TITLE = f"{APP_NAME} {APP_VERSION}"
 
@@ -84,11 +86,11 @@ DEFAULT_FOLDER = os.path.join(os.path.expanduser("~"), "Documents")
 def get_app_config_path():
     home = os.path.expanduser("~")
     if sys.platform == "darwin":
-        base = os.path.join(home, "Library", "Application Support", "MikesCollage")
+        base = os.path.join(home, "Library", "Application Support", "Collage")
     elif os.name == "nt":
-        base = os.path.join(os.environ.get("APPDATA", home), "MikesCollage")
+        base = os.path.join(os.environ.get("APPDATA", home), "Collage")
     else:
-        base = os.path.join(home, ".MikesCollage")
+        base = os.path.join(home, ".Collage")
 
     os.makedirs(base, exist_ok=True)
     return os.path.join(base, "config.json")
@@ -101,16 +103,30 @@ APP_CONFIG_FILE = get_app_config_path()
 # Main App Class
 # --------------------------------------------------------------
 
-class CollageApp(QWidget):
-
+class CollageApp(QMainWindow):
     def __init__(self):
         super().__init__()
+
         self.recent_configs = []
         self.current_config_path = None
 
         self.setWindowTitle(FULL_TITLE)
+        self.setFixedSize(700, 608)
+
+        # zentraler Widget-Container
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # nur ein Layout für alles
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setContentsMargins(15, 10, 15, 10)
+        self.main_layout.setSpacing(10)
+        self.central_widget.setLayout(self.main_layout)
+
+        # Setup UI und Menü
         self.setup_ui()
         self.setup_menu()
+
         self.load_app_config()
         self.try_load_last_used_config()
         self.update_window_title()
@@ -120,19 +136,43 @@ class CollageApp(QWidget):
     # ----------------------------------------------------------
 
     def setup_ui(self):
-        layout = QVBoxLayout()
+        layout = self.main_layout
         layout.setContentsMargins(15, 10, 15, 10)
         layout.setSpacing(10)
 
-        layout.addSpacerItem(QSpacerItem(0, 5, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        layout.addSpacerItem(QSpacerItem(10, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
+        # ------------------ TITLE IMAGE + TEXT ------------------------------
+        hbox_title = QHBoxLayout()
+
+        # Spacer left
+        hbox_title.addStretch(100)
+
+        # Image
+        title_img_path = self.resource_path("title.png")
+        if os.path.exists(title_img_path):
+            pixmap = QPixmap(title_img_path)
+            title_icon = QLabel()
+            title_icon.setPixmap(pixmap)
+            title_icon.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            hbox_title.addWidget(title_icon)
+
+        hbox_title.addStretch()
+
+        # Text
         title = QLabel(APP_NAME)
-        title.setFont(QFont("Arial", 56, QFont.Bold))
-        title.setStyleSheet("color: #62c6ff;")
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
+        title.setFont(QFont("Arial", 78, QFont.Bold))
+        title.setStyleSheet("color: #abd0da;") # #62c6ff 
+        title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        hbox_title.addWidget(title)
 
-        layout.addSpacerItem(QSpacerItem(0, 5, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        # optional Spacer left, if text is not too close to the image
+        hbox_title.addStretch(100)
+
+        # Spacer right
+        layout.addLayout(hbox_title)
+
+        layout.addSpacerItem(QSpacerItem(10, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
         self.input_folder_edit = self.add_labeled_folder(layout, "Input Folder", DEFAULT_FOLDER)
         self.output_folder_edit = self.add_labeled_folder(layout, "Output Folder", DEFAULT_FOLDER)
@@ -147,60 +187,80 @@ class CollageApp(QWidget):
 
         layout.addSpacerItem(QSpacerItem(0, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        btns = QHBoxLayout()
+        btn_container = QWidget()
+        btn_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+        btn_container.setFixedWidth(176)
+        btn_container.setFixedHeight(32)
+
+        btns = QHBoxLayout(btn_container)
+        btns.setContentsMargins(0, 0, 0, 0)
+        btns.setSpacing(10)
+        btns.setSizeConstraint(QLayout.SetFixedSize)
+
         run_btn = QPushButton("Run")
+        run_btn.setFixedSize(80, 32)
         run_btn.clicked.connect(self.run_collage)
         exit_btn = QPushButton("Exit")
+        exit_btn.setFixedSize(80, 32)
         exit_btn.clicked.connect(self.close)
 
-        for b in (run_btn, exit_btn):
-            b.setStyleSheet("""
-                QPushButton {
-                    padding: 8px 16px;
-                    border-radius: 6px;
-                    background-color: #3399ff;
-                    color: white;
-                }
-                QPushButton:hover {
-                    background-color: #55aaff;
-                }
-            """)
+        run_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                border-radius: 6px;
+                background-color: #3399ff;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #55aaff;
+            }
+        """)
+
+        exit_btn.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                border-radius: 6px;
+                background-color: #747474;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #909090;
+            }
+        """)
 
         btns.addWidget(run_btn)
         btns.addWidget(exit_btn)
-        layout.addLayout(btns)
+        layout.addWidget(btn_container, alignment=Qt.AlignCenter)
 
         layout.addSpacerItem(QSpacerItem(0, 6, QSizePolicy.Minimum, QSizePolicy.Fixed))
-
-        self.setLayout(layout)
-        self.setFixedSize(700, 620)
 
     # ----------------------------------------------------------
     # Menu
     # ----------------------------------------------------------
 
     def setup_menu(self):
-        menubar = QMenuBar()
-        file_menu = QMenu("&File", self)
+        menubar = self.menuBar()  # QMainWindow own menubar
 
-        load_action = QAction("Load Config…", self)
-        load_action.triggered.connect(self.load_config_dialog)
-
-        save_action = QAction("Save Config As…", self)
-        save_action.triggered.connect(self.save_config_dialog)
-
+        # File Menu
+        file_menu = menubar.addMenu("&File")
+        file_menu.addAction(self.create_action("New…", self.new_config))
+        file_menu.addAction(self.create_action("Load Config…", self.load_config_dialog))
+        file_menu.addAction(self.create_action("Save Config As…", self.save_config_dialog))
+        
         recent_menu = QMenu("Recent Configurations", self)
         self.recent_menu = recent_menu
         self.rebuild_recent_menu()
-
-        file_menu.addAction(load_action)
-        file_menu.addAction(save_action)
         file_menu.addSeparator()
         file_menu.addMenu(recent_menu)
 
-        menubar.addMenu(file_menu)
-        if self.layout():
-            self.layout().setMenuBar(menubar)
+        # Help Menu
+        help_menu = menubar.addMenu("&Help")
+        help_menu.addAction(self.create_action("About", self.show_about))
+
+    def create_action(self, name, func):
+        action = QAction(name, self)
+        action.triggered.connect(func)
+        return action
 
     # ----------------------------------------------------------
     # Resource & MessageBox Helpers
@@ -208,10 +268,31 @@ class CollageApp(QWidget):
 
     def resource_path(self, filename: str) -> str:
         if getattr(sys, "frozen", False):
-            base_path = sys._MEIPASS
+            # macOS gebundletes App: resources liegen in Contents/Resources
+            base_path = os.path.join(sys._MEIPASS, "..", "Resources", "resources")
+            base_path = os.path.abspath(base_path)
         else:
             base_path = os.path.join(os.path.dirname(__file__), "resources")
         return os.path.join(base_path, filename)
+
+    def show_about(self):
+        box = QMessageBox(self)
+        box.setWindowTitle("About")
+        
+        # App Icon
+        icon_path = self.resource_path("app_icon.icns")  # oder .png, je nach Build
+        if os.path.exists(icon_path):
+            box.setIconPixmap(QPixmap(icon_path).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            box.setIcon(QMessageBox.Information)
+        
+        # Text
+        box.setText(f"{APP_NAME}\nVersion: {APP_VERSION}\n\n© 2025 Michael Gasche\nAll rights reserved.")
+        
+        # Optional: OK Button
+        box.setStandardButtons(QMessageBox.Ok)
+        
+        box.exec()
 
     def show_info(self, title: str, message: str):
         box = QMessageBox()
@@ -316,7 +397,7 @@ class CollageApp(QWidget):
 
         try:
             bgcolor_rgb = parse_color(self.bgcolor_edit.text())
-            create_collage(
+            result = create_collage(
                 input_dir=input_dir,
                 width=int(self.width_edit.text()),
                 height=int(self.height_edit.text()),
@@ -327,6 +408,12 @@ class CollageApp(QWidget):
                 rows=int(self.rows_edit.text()),
                 iterations=int(self.iterations_edit.text())
             )
+
+            if not result:  # If create_collage None or empty list returns
+                self.show_warning("No Images Found",
+                                f"No image files were found in the folder:\n{input_dir}")
+                return
+        
             self.show_info("Success", f"Collage Created!\nSaved to:\n{full_output_path}")
 
         except Exception as e:
@@ -361,6 +448,27 @@ class CollageApp(QWidget):
         self.overlap_edit.setText(str(params.get("overlap_factor", DEFAULTS["overlap_factor"])))
         self.rows_edit.setText(str(params.get("rows", DEFAULTS["rows"])))
         self.iterations_edit.setText(str(params.get("iterations", DEFAULTS["iterations"])))
+
+    # ----------------------------------------------------------
+    # New Config
+    # ----------------------------------------------------------
+
+    def new_config(self):
+        """Resets all fields to default values and clears current config."""
+        self.current_config_path = None
+        self.apply_params({
+            "input_folder": DEFAULT_FOLDER,
+            "output_folder": DEFAULT_FOLDER,
+            "output_file": DEFAULTS["output_file"],
+            "width": DEFAULTS["width"],
+            "height": DEFAULTS["height"],
+            "bgcolor": DEFAULTS["bgcolor"],
+            "max_rotation": DEFAULTS["max_rotation"],
+            "overlap_factor": DEFAULTS["overlap_factor"],
+            "rows": DEFAULTS["rows"],
+            "iterations": DEFAULTS["iterations"]
+        })
+        self.update_window_title()
 
     # ----------------------------------------------------------
     # SAVE / LOAD CONFIG FILES (user-level .json)
