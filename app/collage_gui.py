@@ -165,7 +165,7 @@ class CollageApp(QMainWindow):
         # Text
         title = QLabel(APP_NAME)
         if sys.platform == "win32":
-            font_size = 50
+            font_size = 42
         else:
             font_size = 78
         title.setFont(QFont("Arial", font_size, QFont.Bold))
