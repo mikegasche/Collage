@@ -57,32 +57,26 @@ jobs:
 
           echo "=== SYMLINK CLEANUP START ==="
 
-          # Dateien/Ordner, die NIEMALS ersetzt werden dürfen in 'Resources'
+          # Verzeichnisse/Dateien in Resources, die NIE ersetzt werden
           KEEP_REGEX="PySide6|resources"
 
-          # Gehe alle Dateien in Resources durch
-          find "$RES" -type f | while read f; do
-            rel="${f#$RES/}"
-            fw_file="$FW/$rel"
+          # Alle Einträge in der ersten Ebene von Resources prüfen
+          for entry in "$RES"/*; do
+              name=$(basename "$entry")
+              
+              # Überspringe Ausnahmen
+              if [[ $name =~ $KEEP_REGEX ]]; then
+                  continue
+              fi
 
-            # Nur bearbeiten, wenn Frameworks-Datei existiert
-            if [[ -f "$fw_file" && ! "$rel" =~ $KEEP_REGEX ]]; then
-              echo "Replacing $rel in Resources with symlink to Frameworks"
-              rm -f "$f"
-              ln -s "../Frameworks/$rel" "$f"
-            fi
-          done
+              fw_path="$FW/$name"
 
-          # Auch Symlinks für ganze Verzeichnisse in Resources
-          find "$RES" -mindepth 1 -maxdepth 1 -type d | while read d; do
-            rel="${d#$RES/}"
-            fw_dir="$FW/$rel"
-
-            if [[ -d "$fw_dir" && ! "$rel" =~ $KEEP_REGEX ]]; then
-              echo "Replacing directory $rel in Resources with symlink to Frameworks"
-              rm -rf "$d"
-              ln -s "../Frameworks/$rel" "$d"
-            fi
+              # Wenn es in Frameworks existiert, ersetzen
+              if [[ -e "$fw_path" ]]; then
+                  echo "Replacing $name in Resources with symlink to Frameworks"
+                  rm -rf "$entry"
+                  ln -s "../Frameworks/$name" "$RES/$name"
+              fi
           done
 
           echo "=== SYMLINK CLEANUP END ==="
