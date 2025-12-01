@@ -34,7 +34,7 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow
-          pip install pyinstaller==6.14.2
+          pip install pyinstaller==6.15.0
 
       - name: Build Collage.app
         run: |
