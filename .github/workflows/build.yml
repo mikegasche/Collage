@@ -3,11 +3,11 @@ name: Build Collage Releases
 on:
   push:
     tags:
-      - 'v*'                # nur bei Tag-Push (z.B. v1.0.0)
-  workflow_dispatch:        # manuelles Triggern möglich
+      - 'v*'
+  workflow_dispatch:
 
 env:
-  VERSION: 1.0.0            # Version manuell definieren
+  VERSION: 1.0.0
 
 jobs:
   build-macos:
@@ -33,10 +33,18 @@ jobs:
           # Alte Builds entfernen
           rm -rf build dist Collage.spec
 
-          # PyInstaller Build
+          # PyInstaller Build mit gezieltem Ausschluss unnötiger PySide6-Module
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
+            --exclude-module PySide6.QtWebEngine \
+            --exclude-module PySide6.QtMultimedia \
+            --exclude-module PySide6.QtNetwork \
+            --exclude-module PySide6.QtSql \
+            --exclude-module PySide6.Qt3DCore \
+            --exclude-module PySide6.Qt3DRender \
+            --exclude-module PySide6.Qt3DExtras \
+            --exclude-module PySide6.QtCharts \
             --target-arch arm64 \
             app/collage_gui.py
 
@@ -68,10 +76,9 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
-      - name: Install UPX (optional, für kleinere EXE)
+      - name: Install UPX
         shell: pwsh
-        run: |
-          choco install upx -y
+        run: choco install upx -y
 
       - name: Build application (Windows)
         shell: pwsh
@@ -81,19 +88,29 @@ jobs:
           if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
           if (Test-Path Collage.spec) { Remove-Item -Force Collage.spec }
 
-          # PyInstaller Build
+          # PyInstaller Build mit gezieltem Ausschluss unnötiger PySide6-Module
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
             --exclude-module PySide6.QtWebEngine `
+            --exclude-module PySide6.QtMultimedia `
+            --exclude-module PySide6.QtNetwork `
+            --exclude-module PySide6.QtSql `
+            --exclude-module PySide6.Qt3DCore `
+            --exclude-module PySide6.Qt3DRender `
+            --exclude-module PySide6.Qt3DExtras `
+            --exclude-module PySide6.QtCharts `
             --upx-dir "C:\Program Files\UPX" `
             app/collage_gui.py
 
           # EXE finden
           $exePath = Get-ChildItem -Path dist -Recurse -Filter "Collage.exe" | Select-Object -First 1
 
-          # ZIP erstellen
-          $zipPath = "Collage-windows-x64-${env:VERSION}.zip"
+          # Sicherstellen, dass dist existiert
+          if (-Not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
+
+          # ZIP erstellen im dist-Ordner
+          $zipPath = Join-Path -Path "dist" -ChildPath "Collage-windows-x64-${env:VERSION}.zip"
           Compress-Archive -Path $exePath.FullName -DestinationPath $zipPath
 
       - name: Upload release artifact (Windows)
