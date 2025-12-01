@@ -93,6 +93,7 @@ jobs:
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow pyinstaller
 
+
       - name: Build Collage.exe
         shell: pwsh
         run: |
@@ -105,13 +106,23 @@ jobs:
             --add-data "app/resources;resources" `
             app/collage_gui.py
 
-          $distDir = "dist\Collage"
-          $zipPath = "dist\Collage-windows-x64-${env:VERSION}.zip"
-          if (Test-Path $zipPath) { Remove-Item $zipPath }
+          $zip = "Collage-windows-x64-$env:VERSION.zip"
 
-          Push-Location dist
-          Compress-Archive -Path "Collage.exe" -DestinationPath "Collage-windows-x64-${env:VERSION}.zip" -Force
-          Pop-Location
+          # Sicherstellen, dass das ZIP nicht schon existiert
+          if (Test-Path "dist\$zip") {
+              Remove-Item "dist\$zip" -Force
+          }
+
+          # AUF KEINEN FALL innerhalb von 'dist' packen!!!
+          # Das verursacht das Self-ZIP-Problem.
+
+          Compress-Archive `
+              -Path "dist/Collage.exe" `
+              -DestinationPath $zip `
+              -Force
+
+          # ZIP in den dist Ordner verschieben
+          Move-Item $zip "dist/$zip" -Force
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
