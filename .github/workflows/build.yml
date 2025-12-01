@@ -43,7 +43,7 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow
-          pip install pyinstaller==6.15.0
+          pip install pyinstaller
 
       - name: Build Collage.app
         run: |
@@ -124,7 +124,7 @@ jobs:
             $sevenZip = "C:\Program Files (x86)\7-Zip\7z.exe"
           }
 
-          & $sevenZip a "dist\$zip" "dist\Collage.exe"
+          & $sevenZip a -spf2 "dist\$zip" ".\dist\Collage.exe"
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
