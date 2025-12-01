@@ -3,11 +3,11 @@ name: Build Collage Releases
 on:
   push:
     tags:
-      - 'v*'                # Trigger nur bei Tag-Push
-  workflow_dispatch:        # Manuelles Triggern möglich
+      - 'v*'                # nur bei Tag-Push (z.B. v1.0.0)
+  workflow_dispatch:        # manuelles Triggern möglich
 
 env:
-  VERSION: 1.0.0            # Version manuell hier setzen
+  VERSION: 1.0.0            # Version manuell definieren
 
 jobs:
   build-macos:
@@ -22,23 +22,25 @@ jobs:
         with:
           python-version: 3.11.8
 
-      - name: Setup virtual environment
-        shell: bash
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
       - name: Build application (macOS)
         shell: bash
         run: |
-          source venv/bin/activate
+          # Alte Builds entfernen, falls vorhanden
           rm -rf build dist Collage.spec
+
+          # PyInstaller Build
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
+            --target-arch arm64 \
             app/collage_gui.py
+
+          # ZIP nur mit Collage.app
           cd dist
           zip -r "Collage-macos-arm64-${VERSION}.zip" Collage.app
 
@@ -60,31 +62,36 @@ jobs:
         with:
           python-version: 3.11.8
 
-      - name: Setup virtual environment
+      - name: Install dependencies
         shell: pwsh
         run: |
-          python -m venv venv
-          .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
       - name: Build application (Windows)
         shell: pwsh
         run: |
-          .\venv\Scripts\Activate.ps1
-          Remove-Item -Recurse -Force build, dist, Collage.spec
+          # Alte Builds entfernen (nur wenn existieren)
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
+          if (Test-Path Collage.spec) { Remove-Item -Force Collage.spec }
+
+          # PyInstaller Build
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
             app/collage_gui.py
+
+          # ZIP nur mit Collage.exe
+          cd dist
           $zipPath = "Collage-windows-x64-${env:VERSION}.zip"
-          Compress-Archive -Path "dist\Collage.exe" -DestinationPath $zipPath
+          Compress-Archive -Path "Collage.exe" -DestinationPath $zipPath
 
       - name: Upload release artifact (Windows)
         uses: actions/upload-artifact@v4
         with:
           name: Collage-windows-x64-${{ env.VERSION }}
-          path: Collage-windows-x64-${{ env.VERSION }}.zip
+          path: dist/Collage-windows-x64-${{ env.VERSION }}.zip
 
   publish:
     needs: [build-macos, build-windows]
