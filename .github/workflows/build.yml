@@ -11,10 +11,11 @@ env:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
     strategy:
       matrix:
         arch: [x86_64, arm64]
+        os: [macos-13, macos-latest]
+    runs-on: ${{ matrix.os }}
     name: Build macOS ${{ matrix.arch }}
     steps:
       - name: Checkout repository
