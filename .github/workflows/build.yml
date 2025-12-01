@@ -1,32 +1,23 @@
 name: Build Collage Releases
 
-# Trigger: nur Tags oder manuelles Triggern
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - 'v*'                # nur wenn mit Tags gepusht wird
+  workflow_dispatch:        # manuelles Triggern über GitHub UI
 
-# Manuelle Version definieren
 env:
-  VERSION: "1.0.0"  # <-- Hier Version manuell einstellen
+  VERSION: 1.0.0            # hier die Version manuell definieren
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
-        arch: [arm64, x64]  # macOS ARM64, Windows x64
-
-    runs-on: ${{ matrix.os }}
-
-    name: Build on ${{ matrix.os }} / ${{ matrix.arch }}
-
+  build-macos:
+    runs-on: macos-latest
+    name: Build macOS ARM64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.11.8
         uses: actions/setup-python@v4
         with:
           python-version: 3.11.8
@@ -36,56 +27,62 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
-      - name: Build application
+      - name: Build application (macOS)
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            TARGET_ARCH="arm64"
-            pyinstaller \
-              --name "Collage" \
-              --windowed \
-              --icon "app/resources/app_icon.icns" \
-              --add-data "app/resources:resources" \
-              --target-arch $TARGET_ARCH \
-              app/collage_gui.py
-            BUILD_PATH="dist/Collage.app"
-          else
-            # Windows x64
-            TARGET_ARCH="x64"
-            pyinstaller \
-              --name "Collage" \
-              --windowed \
-              --icon "app/resources/app_icon.ico" \
-              --add-data "app/resources;resources" \
-              app/collage_gui.py
-            BUILD_PATH="dist/Collage.exe"
-          fi
-
-      - name: Package build output
-        shell: bash
-        run: |
+          pyinstaller --name "Collage" --windowed \
+            --icon "app/resources/app_icon.icns" \
+            --add-data "app/resources:resources" \
+            --target-arch arm64 \
+            --onefile app/collage_gui.py
           cd dist
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            ZIP_NAME="Collage-macos-${{ matrix.arch }}-${VERSION}.zip"
-            zip -r "../${ZIP_NAME}" "Collage.app"
-          else
-            ZIP_NAME="Collage-windows-${{ matrix.arch }}-${VERSION}.zip"
-            zip "../${ZIP_NAME}" "Collage.exe"
-          fi
+          zip "Collage-macos-arm64-${VERSION}.zip" Collage
 
-      - name: Upload release artifact
+      - name: Upload release artifact (macOS)
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-${{ matrix.os }}-${{ matrix.arch }}-${VERSION}
-          path: |
-            Collage-*.zip
+          name: Collage-macos-arm64-${VERSION}
+          path: dist/Collage-macos-arm64-${VERSION}.zip
+
+  build-windows:
+    runs-on: windows-latest
+    name: Build Windows x64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller PySide6 pillow
+
+      - name: Build application (Windows)
+        shell: pwsh
+        run: |
+          pyinstaller --name "Collage" --windowed `
+            --icon "app/resources/app_icon.ico" `
+            --add-data "app/resources;resources" `
+            --onefile app/collage_gui.py
+          $zipPath = "Collage-windows-x64-${env:VERSION}.zip"
+          Compress-Archive -Path "dist\Collage.exe" -DestinationPath $zipPath
+
+      - name: Upload release artifact (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Collage-windows-x64-${{ env.VERSION }}
+          path: Collage-windows-x64-${{ env.VERSION }}.zip
 
   publish:
-    needs: build
+    needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download build artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./releases
