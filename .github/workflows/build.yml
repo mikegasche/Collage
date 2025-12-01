@@ -59,7 +59,7 @@ jobs:
 
           # Dateien, die NIEMALS entfernt dürfen
           # KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|Qt|plugins|qml"
-          KEEP_REGEX="Python$|shiboken6|PySide6"
+          KEEP_REGEX="Python$|shiboken6|PySide6|PIL"
 
           find "$FW" -type f | while read f; do
             rel="${f#$FW/}"
