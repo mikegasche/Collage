@@ -41,8 +41,8 @@ jobs:
       - name: Upload release artifact (macOS)
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-macos-arm64-${VERSION}
-          path: dist/Collage-macos-arm64-${VERSION}.zip
+          name: Collage-macos-arm64-${{ env.VERSION }}
+          path: dist/Collage-macos-arm64-${{ env.VERSION }}.zip
 
   build-windows:
     runs-on: windows-latest
