@@ -12,28 +12,37 @@ env:
 jobs:
   build-macos:
     runs-on: macos-latest
-    name: Build macOS ARM64
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    name: Build macOS ${{ matrix.arch }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11.8
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.8
-
-      - name: Install dependencies
+      - name: Setup Python 3.11.9 via pyenv
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install pyinstaller PySide6 pillow
+          brew install pyenv || true
+          pyenv install -s 3.11.9
+          pyenv local 3.11.9
+          python --version
 
-      - name: Build application (macOS)
-        shell: bash
+      - name: Create minimal venv
         run: |
-          # Alte Builds entfernen
+          rm -rf venv
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip setuptools wheel
+          pip install PySide6 pillow pyinstaller
+          python -m pip show PySide6
+          python -m pip show pillow
+          python -m pip show pyinstaller
+
+      - name: Build Collage.app
+        run: |
+          source venv/bin/activate
           rm -rf build dist Collage.spec
 
-          # PyInstaller Build mit gezieltem Ausschluss unnötiger PySide6-Module
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
@@ -45,18 +54,18 @@ jobs:
             --exclude-module PySide6.Qt3DRender \
             --exclude-module PySide6.Qt3DExtras \
             --exclude-module PySide6.QtCharts \
-            --target-arch arm64 \
+            --strip \
+            --upx-dir /usr/local/bin/upx \
             app/collage_gui.py
 
-          # ZIP nur mit Collage.app
           cd dist
-          zip -r "Collage-macos-arm64-${VERSION}.zip" Collage.app
+          zip -r "Collage-macos-${{ matrix.arch }}-${{ env.VERSION }}.zip" Collage.app
 
-      - name: Upload release artifact (macOS)
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-macos-arm64-${{ env.VERSION }}
-          path: dist/Collage-macos-arm64-${{ env.VERSION }}.zip
+          name: Collage-macos-${{ matrix.arch }}-${{ env.VERSION }}
+          path: dist/Collage-macos-${{ matrix.arch }}-${{ env.VERSION }}.zip
 
   build-windows:
     runs-on: windows-latest
@@ -65,30 +74,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11.8
+      - name: Setup Python 3.11.9
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11.8
+          python-version: 3.11.9
 
-      - name: Install dependencies
+      - name: Create minimal venv
         shell: pwsh
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install pyinstaller PySide6 pillow
+          Remove-Item -Recurse -Force venv -ErrorAction SilentlyContinue
+          python -m venv venv
+          .\venv\Scripts\Activate.ps1
+          pip install --upgrade pip setuptools wheel
+          pip install PySide6 pillow pyinstaller
 
       - name: Install UPX
         shell: pwsh
         run: choco install upx -y
 
-      - name: Build application (Windows)
+      - name: Build Collage.exe
         shell: pwsh
         run: |
-          # Alte Builds entfernen
+          .\venv\Scripts\Activate.ps1
           if (Test-Path build) { Remove-Item -Recurse -Force build }
           if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
           if (Test-Path Collage.spec) { Remove-Item -Force Collage.spec }
 
-          # PyInstaller Build mit gezieltem Ausschluss unnötiger PySide6-Module
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
@@ -100,20 +111,17 @@ jobs:
             --exclude-module PySide6.Qt3DRender `
             --exclude-module PySide6.Qt3DExtras `
             --exclude-module PySide6.QtCharts `
+            --strip `
             --upx-dir "C:\Program Files\UPX" `
             app/collage_gui.py
 
-          # EXE finden
+          # EXE suchen
           $exePath = Get-ChildItem -Path dist -Recurse -Filter "Collage.exe" | Select-Object -First 1
-
-          # Sicherstellen, dass dist existiert
-          if (-Not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
-
-          # ZIP erstellen im dist-Ordner
+          if (-not (Test-Path "dist")) { New-Item -ItemType Directory -Path dist }
           $zipPath = Join-Path -Path "dist" -ChildPath "Collage-windows-x64-${env:VERSION}.zip"
           Compress-Archive -Path $exePath.FullName -DestinationPath $zipPath
 
-      - name: Upload release artifact (Windows)
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: Collage-windows-x64-${{ env.VERSION }}
