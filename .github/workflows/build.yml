@@ -100,6 +100,7 @@ jobs:
           Remove-Item -Recurse -Force build, dist, Collage.spec -ErrorAction SilentlyContinue
 
           pyinstaller --name "Collage" --windowed `
+            --onefile `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
             app/collage_gui.py
@@ -107,7 +108,7 @@ jobs:
           $distDir = "dist\Collage"
           $zipPath = "dist\Collage-windows-x64-${env:VERSION}.zip"
           if (Test-Path $zipPath) { Remove-Item $zipPath }
-          Compress-Archive -Path "$distDir\*" -DestinationPath $zipPath -Force
+          Compress-Archive -Path "dist\Collage.exe" -DestinationPath $zipPath -Force
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4

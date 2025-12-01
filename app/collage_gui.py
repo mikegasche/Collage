@@ -33,7 +33,7 @@ import os
 import sys
 from datetime import datetime
 
-from PySide6.QtGui import QAction, QFont, QPixmap
+from PySide6.QtGui import QAction, QFont, QPixmap,QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -161,7 +161,11 @@ class CollageApp(QMainWindow):
 
         # Text
         title = QLabel(APP_NAME)
-        title.setFont(QFont("Arial", 78, QFont.Bold))
+        if sys.platform == "win32":
+            font_size = 64
+        else:
+            font_size = 78
+        title.setFont(QFont("Arial", font_size, QFont.Bold))
         title.setStyleSheet("color: #abd0da;") # #62c6ff 
         title.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         hbox_title.addWidget(title)
@@ -268,12 +272,19 @@ class CollageApp(QMainWindow):
 
     def resource_path(self, filename: str) -> str:
         if getattr(sys, "frozen", False):
-            # macOS gebundletes App: resources liegen in Contents/Resources
-            base_path = os.path.join(sys._MEIPASS, "..", "Resources", "resources")
+            # Pfad im gebündelten PyInstaller Build
+            if sys.platform == "darwin":
+                # macOS App-Bundle: Resources liegen in Contents/Resources
+                base_path = os.path.join(sys._MEIPASS, "..", "Resources", "resources")
+            else:
+                # Windows oder Linux: direkt im temporären Ordner
+                base_path = os.path.join(sys._MEIPASS, "resources")
             base_path = os.path.abspath(base_path)
         else:
+            # Entwicklung: relative Pfade
             base_path = os.path.join(os.path.dirname(__file__), "resources")
         return os.path.join(base_path, filename)
+
 
     def show_about(self):
         box = QMessageBox(self)
@@ -629,5 +640,12 @@ class CollageApp(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = CollageApp()
+    if sys.platform == "win32":
+        icon_file = "app_icon.ico"
+    elif sys.platform == "darwin":
+        icon_file = "app_icon.icns"
+    else:
+        icon_file = "app_icon.png"
+    window.setWindowIcon(QIcon(window.resource_path(icon_file)))
     window.show()
     sys.exit(app.exec())
