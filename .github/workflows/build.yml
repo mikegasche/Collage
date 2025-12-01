@@ -3,19 +3,18 @@ name: Build Collage Releases
 on:
   push:
     tags:
-      - 'v*'                # nur wenn du mit Tags pushst (z.B. v1.0.0)
-  workflow_dispatch:        # optional: manuelles Triggern über GitHub UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        arch: [x64, arm64]     # für macOS → Intel (x64) & ARM
+        arch: [x64, arm64]
         python: ["3.11.8"]
 
     runs-on: ${{ matrix.os }}
-
     name: Build on ${{ matrix.os }} / ${{ matrix.arch }}
 
     steps:
@@ -35,23 +34,34 @@ jobs:
       - name: Build application
         shell: bash
         run: |
-          # Wenn macOS: target arch abhängig vom matrix.arch
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            if [ "${{ matrix.arch }}" = "arm64" ]; then
-              TARGET_ARCH="arm64"
-            else
+            if [ "${{ matrix.arch }}" = "x64" ]; then
+              # Intel build on ARM Runner via Rosetta
+              softwareupdate --install-rosetta --agree-to-license
+              arch -x86_64 python3 -m pip install --upgrade pip setuptools wheel
+              arch -x86_64 python3 -m pip install pyinstaller PySide6 pillow
               TARGET_ARCH="x86_64"
+              arch -x86_64 pyinstaller \
+                --name "Collage" \
+                --windowed \
+                --icon "app/resources/app_icon.icns" \
+                --add-data "app/resources:resources" \
+                --target-arch $TARGET_ARCH \
+                app/collage_gui.py
+            else
+              # ARM build
+              TARGET_ARCH="arm64"
+              pyinstaller \
+                --name "Collage" \
+                --windowed \
+                --icon "app/resources/app_icon.icns" \
+                --add-data "app/resources:resources" \
+                --target-arch $TARGET_ARCH \
+                app/collage_gui.py
             fi
-            pyinstaller \
-              --name "Collage" \
-              --windowed \
-              --icon "app/resources/app_icon.icns" \
-              --add-data "app/resources:resources" \
-              --target-arch $TARGET_ARCH \
-              app/collage_gui.py
             BUILD_PATH="dist/Collage.app"
           else
-            # Windows Build (on windows-latest runner)
+            # Windows build
             pyinstaller \
               --name "Collage" \
               --windowed \
@@ -72,14 +82,12 @@ jobs:
             ZIP_NAME="Collage-windows-${{ matrix.arch }}.zip"
             zip "../${ZIP_NAME}" "Collage.exe"
           fi
-        # Gibt ZIP zurück ins Repo-root
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
           name: Collage-${{ matrix.os }}-${{ matrix.arch }}
-          path: |
-            Collage-*.zip
+          path: Collage-*.zip
 
   publish:
     needs: build
