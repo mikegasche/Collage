@@ -13,7 +13,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-13, macos-latest]
+        os: [macos-15-intel, macos-latest]
     runs-on: ${{ matrix.os }}
     name: Build macOS (${{ matrix.os }})
     steps:
@@ -58,8 +58,6 @@ jobs:
           echo "=== SAFE CLEANUP START ==="
 
           # Dateien, die NIEMALS entfernt dürfen
-          # KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|Qt|plugins|qml"
-          # KEEP_REGEX="Python$|shiboken6|PySide6|PIL"
           KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|shiboken6|Qt|plugins|qml|PIL
 
           find "$FW" -type f | while read f; do
@@ -83,7 +81,7 @@ jobs:
       - name: Zip Collage.app
         run: |
           cd dist
-          if [[ "${{ matrix.os }}" == "macos-13" ]]; then
+          if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
             ZIP_BASENAME="Collage-macos-x64-${{ env.VERSION }}"
           else
             ZIP_BASENAME="Collage-macos-arm64-${{ env.VERSION }}"
