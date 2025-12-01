@@ -154,6 +154,9 @@ class CollageApp(QMainWindow):
             pixmap = QPixmap(title_img_path)
             title_icon = QLabel()
             title_icon.setPixmap(pixmap)
+            if sys.platform == "win32":
+                title_icon.setScaledContents(True)
+                title_icon.setFixedSize(64, 64)
             title_icon.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             hbox_title.addWidget(title_icon)
 
@@ -162,7 +165,7 @@ class CollageApp(QMainWindow):
         # Text
         title = QLabel(APP_NAME)
         if sys.platform == "win32":
-            font_size = 64
+            font_size = 50
         else:
             font_size = 78
         title.setFont(QFont("Arial", font_size, QFont.Bold))
