@@ -51,27 +51,26 @@ jobs:
       ###################################################################
       - name: Cleanup duplicated framework resources (symlink mode)
         run: |
+
           APP="dist/Collage.app"
           FW="$APP/Contents/Frameworks"
           RES="$APP/Contents/Resources"
 
           echo "=== SYMLINK CLEANUP START ==="
 
-          # Verzeichnisse/Dateien in Resources, die NIE ersetzt werden
           KEEP_REGEX="PySide6|resources"
 
-          # Alle Einträge in der ersten Ebene von Resources prüfen
           for entry in "$RES"/*; do
               name=$(basename "$entry")
               
-              # Überspringe Ausnahmen
+              # Ausnahmen überspringen
               if [[ $name =~ $KEEP_REGEX ]]; then
                   continue
               fi
 
               fw_path="$FW/$name"
 
-              # Wenn es in Frameworks existiert, ersetzen
+              # Nur wenn Datei/Ordner in Frameworks existiert
               if [[ -e "$fw_path" ]]; then
                   echo "Replacing $name in Resources with symlink to Frameworks"
                   rm -rf "$entry"
