@@ -57,8 +57,8 @@ jobs:
 
           echo "=== SYMLINK CLEANUP START ==="
 
-          # Dateien/Ordner, die NIEMALS verändert werden dürfen
-          KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|shiboken6|Qt|plugins|qml|PIL"
+          # Dateien/Ordner, die NIEMALS ersetzt werden dürfen in 'Resources'
+          KEEP_REGEX="PySide6|resources"
 
           # Gehe alle Dateien in Resources durch
           find "$RES" -type f | while read f; do
@@ -73,7 +73,7 @@ jobs:
             fi
           done
 
-          # Optional: auch Symlinks für ganze Verzeichnisse in Resources
+          # Auch Symlinks für ganze Verzeichnisse in Resources
           find "$RES" -mindepth 1 -maxdepth 1 -type d | while read d; do
             rel="${d#$RES/}"
             fw_dir="$FW/$rel"
