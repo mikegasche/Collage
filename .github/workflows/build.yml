@@ -30,7 +30,7 @@ jobs:
       - name: Build application (macOS)
         shell: bash
         run: |
-          # Alte Builds entfernen, falls vorhanden
+          # Alte Builds entfernen
           rm -rf build dist Collage.spec
 
           # PyInstaller Build
@@ -68,10 +68,15 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
+      - name: Install UPX (optional, für kleinere EXE)
+        shell: pwsh
+        run: |
+          choco install upx -y
+
       - name: Build application (Windows)
         shell: pwsh
         run: |
-          # Alte Builds entfernen (nur wenn existieren)
+          # Alte Builds entfernen
           if (Test-Path build) { Remove-Item -Recurse -Force build }
           if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
           if (Test-Path Collage.spec) { Remove-Item -Force Collage.spec }
@@ -80,12 +85,16 @@ jobs:
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
+            --exclude-module PySide6.QtWebEngine `
+            --upx-dir "C:\Program Files\UPX" `
             app/collage_gui.py
 
-          # ZIP nur mit Collage.exe
-          cd dist
+          # EXE finden
+          $exePath = Get-ChildItem -Path dist -Recurse -Filter "Collage.exe" | Select-Object -First 1
+
+          # ZIP erstellen
           $zipPath = "Collage-windows-x64-${env:VERSION}.zip"
-          Compress-Archive -Path "Collage.exe" -DestinationPath $zipPath
+          Compress-Archive -Path $exePath.FullName -DestinationPath $zipPath
 
       - name: Upload release artifact (Windows)
         uses: actions/upload-artifact@v4
