@@ -3,11 +3,11 @@ name: Build Collage Releases
 on:
   push:
     tags:
-      - 'v*'                # nur Tag-Pushes triggern die Release-Builds
-  workflow_dispatch:        # optional: manuelles Triggern
+      - 'v*'                # Trigger nur bei Tag-Push
+  workflow_dispatch:        # Manuelles Triggern möglich
 
 env:
-  VERSION: 1.0.0            # hier Version manuell definieren
+  VERSION: 1.0.0            # Version manuell hier setzen
 
 jobs:
   build-macos:
@@ -22,24 +22,27 @@ jobs:
         with:
           python-version: 3.11.8
 
-      - name: Install dependencies
+      - name: Setup virtual environment
+        shell: bash
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
       - name: Build application (macOS)
         shell: bash
         run: |
+          source venv/bin/activate
+          rm -rf build dist Collage.spec
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
-            --target-arch arm64 \
             app/collage_gui.py
           cd dist
-          # macOS Bundle zippen
           zip -r "Collage-macos-arm64-${VERSION}.zip" Collage.app
 
-      - name: Upload macOS artifact
+      - name: Upload release artifact (macOS)
         uses: actions/upload-artifact@v4
         with:
           name: Collage-macos-arm64-${{ env.VERSION }}
@@ -57,22 +60,27 @@ jobs:
         with:
           python-version: 3.11.8
 
-      - name: Install dependencies
+      - name: Setup virtual environment
+        shell: pwsh
         run: |
+          python -m venv venv
+          .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller PySide6 pillow
 
       - name: Build application (Windows)
         shell: pwsh
         run: |
+          .\venv\Scripts\Activate.ps1
+          Remove-Item -Recurse -Force build, dist, Collage.spec
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
             app/collage_gui.py
           $zipPath = "Collage-windows-x64-${env:VERSION}.zip"
-          Compress-Archive -Path "dist\Collage.exe" -DestinationPath $zipPath -Force
+          Compress-Archive -Path "dist\Collage.exe" -DestinationPath $zipPath
 
-      - name: Upload Windows artifact
+      - name: Upload release artifact (Windows)
         uses: actions/upload-artifact@v4
         with:
           name: Collage-windows-x64-${{ env.VERSION }}
@@ -83,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./releases
@@ -97,10 +105,10 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload all release assets
+      - name: Upload release assets
         uses: actions/upload-release-asset@v2
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./releases
-          asset_name: "Collage-${{ env.VERSION }}.zip"
+          asset_path: releases
+          asset_name: "Collage-${{ github.ref_name }}.zip"
           asset_content_type: application/zip
