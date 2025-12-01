@@ -13,7 +13,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-15-intel, macos-latest]
+        os: [macos-13, macos-latest]
     runs-on: ${{ matrix.os }}
     name: Build macOS (${{ matrix.os }})
     steps:
@@ -46,42 +46,51 @@ jobs:
             app/collage_gui.py
 
       ###################################################################
-      # ✅ CLEANUP-SCHRITT: doppelte Dateien aus Frameworks entfernen
-      #    aber nur sichere Dateien, niemals Python/Qt Runtime
+      # ✅ CLEANUP-SCHRITT: Doppelte Dateien aus Resources in Symlinks umwandeln
+      #    Frameworks bleiben unverändert, nur Resources wird angepasst
       ###################################################################
-      - name: Cleanup duplicated framework resources (safe mode)
+      - name: Cleanup duplicated framework resources (symlink mode)
         run: |
           APP="dist/Collage.app"
           FW="$APP/Contents/Frameworks"
           RES="$APP/Contents/Resources"
 
-          echo "=== SAFE CLEANUP START ==="
+          echo "=== SYMLINK CLEANUP START ==="
 
-          # Dateien, die NIEMALS entfernt dürfen
+          # Dateien/Ordner, die NIEMALS verändert werden dürfen
           KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|shiboken6|Qt|plugins|qml|PIL"
 
-          find "$FW" -type f | while read f; do
-            rel="${f#$FW/}"
-            rf="$RES/$rel"
+          # Gehe alle Dateien in Resources durch
+          find "$RES" -type f | while read f; do
+            rel="${f#$RES/}"
+            fw_file="$FW/$rel"
 
-            # nicht löschen, wenn geschützt
-            if [[ "$rel" =~ $KEEP_REGEX ]]; then
-              continue
-            fi
-
-            # löschen, wenn doppelt
-            if [[ -f "$rf" ]]; then
-              echo "Removing duplicate: $rel"
+            # Nur bearbeiten, wenn Frameworks-Datei existiert
+            if [[ -f "$fw_file" && ! "$rel" =~ $KEEP_REGEX ]]; then
+              echo "Replacing $rel in Resources with symlink to Frameworks"
               rm -f "$f"
+              ln -s "../Frameworks/$rel" "$f"
             fi
           done
 
-          echo "=== SAFE CLEANUP END ==="
+          # Optional: auch Symlinks für ganze Verzeichnisse in Resources
+          find "$RES" -mindepth 1 -maxdepth 1 -type d | while read d; do
+            rel="${d#$RES/}"
+            fw_dir="$FW/$rel"
+
+            if [[ -d "$fw_dir" && ! "$rel" =~ $KEEP_REGEX ]]; then
+              echo "Replacing directory $rel in Resources with symlink to Frameworks"
+              rm -rf "$d"
+              ln -s "../Frameworks/$rel" "$d"
+            fi
+          done
+
+          echo "=== SYMLINK CLEANUP END ==="
 
       - name: Zip Collage.app
         run: |
           cd dist
-          if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
+          if [[ "${{ matrix.os }}" == "macos-13" ]]; then
             ZIP_BASENAME="Collage-macos-x64-${{ env.VERSION }}"
           else
             ZIP_BASENAME="Collage-macos-arm64-${{ env.VERSION }}"
