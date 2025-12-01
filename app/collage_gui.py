@@ -301,7 +301,7 @@ class CollageApp(QMainWindow):
             box.setIcon(QMessageBox.Information)
         
         # Text
-        box.setText(f"{APP_NAME}\nVersion: {APP_VERSION}\n\n© 2025 Michael Gasche\nAll rights reserved.")
+        box.setText(f"{APP_NAME}\nVersion: {APP_VERSION}\n\n© 2025 Michael Gasche\nhttps://github.com/mikegasche\n\nAll rights reserved.")
         
         # Optional: OK Button
         box.setStandardButtons(QMessageBox.Ok)
