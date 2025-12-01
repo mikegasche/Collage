@@ -58,7 +58,7 @@ jobs:
           echo "=== SAFE CLEANUP START ==="
 
           # Dateien, die NIEMALS entfernt dürfen
-          KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|shiboken6|Qt|plugins|qml|PIL
+          KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|shiboken6|Qt|plugins|qml|PIL"
 
           find "$FW" -type f | while read f; do
             rel="${f#$FW/}"
