@@ -34,41 +34,31 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow pyinstaller
-          python -m pip show PySide6
-          python -m pip show pillow
-          python -m pip show pyinstaller
 
       - name: Build Collage.app
         run: |
           source venv/bin/activate
           rm -rf build dist Collage.spec
+
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
-            --exclude-module PySide6.QtWebEngine \
-            --exclude-module PySide6.QtMultimedia \
-            --exclude-module PySide6.QtNetwork \
-            --exclude-module PySide6.QtSql \
-            --exclude-module PySide6.Qt3DCore \
-            --exclude-module PySide6.Qt3DRender \
-            --exclude-module PySide6.Qt3DExtras \
-            --exclude-module PySide6.QtCharts \
-            --strip \
-            --upx-dir /usr/local/bin/upx \
             app/collage_gui.py
 
           cd dist
           if [[ "${{ matrix.os }}" == "macos-13" ]]; then
-            zip -r "Collage-macos-x64-${{ env.VERSION }}.zip" Collage.app
+            ZIP_NAME="Collage-macos-x64-${{ env.VERSION }}.zip"
           else
-            zip -r "Collage-macos-arm64-${{ env.VERSION }}.zip" Collage.app
+            ZIP_NAME="Collage-macos-arm64-${{ env.VERSION }}.zip"
           fi
+          zip -r "$ZIP_NAME" Collage.app
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-macos-${{ env.VERSION }}-${{ matrix.os }}
-          path: dist/*.zip
+          name: ${{ env.ZIP_NAME }}
+          path: dist/${{ env.ZIP_NAME }}
 
   build-windows:
     runs-on: windows-latest
@@ -91,38 +81,21 @@ jobs:
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow pyinstaller
 
-      - name: Install UPX
-        shell: pwsh
-        run: choco install upx -y
-
       - name: Build Collage.exe
         shell: pwsh
         run: |
           .\venv\Scripts\Activate.ps1
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-          if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
-          if (Test-Path Collage.spec) { Remove-Item -Force Collage.spec }
+          Remove-Item -Recurse -Force build, dist, Collage.spec -ErrorAction SilentlyContinue
 
           pyinstaller --name "Collage" --windowed `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
-            --exclude-module PySide6.QtWebEngine `
-            --exclude-module PySide6.QtMultimedia `
-            --exclude-module PySide6.QtNetwork `
-            --exclude-module PySide6.QtSql `
-            --exclude-module PySide6.Qt3DCore `
-            --exclude-module PySide6.Qt3DRender `
-            --exclude-module PySide6.Qt3DExtras `
-            --exclude-module PySide6.QtCharts `
-            --strip `
-            --upx-dir "C:\Program Files\UPX" `
             app/collage_gui.py
 
-          # EXE suchen
-          $exePath = Get-ChildItem -Path dist -Recurse -Filter "Collage.exe" | Select-Object -First 1
-          if (-not (Test-Path "dist")) { New-Item -ItemType Directory -Path dist }
-          $zipPath = Join-Path -Path "dist" -ChildPath "Collage-windows-x64-${env:VERSION}.zip"
-          Compress-Archive -Path $exePath.FullName -DestinationPath $zipPath
+          $distDir = "dist\Collage"
+          $zipPath = "dist\Collage-windows-x64-${env:VERSION}.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath }
+          Compress-Archive -Path "$distDir\*" -DestinationPath $zipPath -Force
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
