@@ -58,7 +58,8 @@ jobs:
           echo "=== SAFE CLEANUP START ==="
 
           # Dateien, die NIEMALS entfernt dürfen
-          KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|Qt|plugins|qml"
+          # KEEP_REGEX="Python$|libpython|\.dylib$|\.so$|PySide6|Qt|plugins|qml"
+          KEEP_REGEX="Python$"
 
           find "$FW" -type f | while read f; do
             rel="${f#$FW/}"
@@ -92,7 +93,12 @@ jobs:
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-${{ matrix.os }}-${{ env.VERSION }}
+          name: 
+            if [[ "${{ matrix.os }}" == "macos-13" ]]; then
+              Collage-macos-x64-${{ env.VERSION }}
+            else
+              Collage-macos-arm64-${{ env.VERSION }}
+            fi
           path: dist/${{ env.ZIP_NAME }}
 
   build-windows:
