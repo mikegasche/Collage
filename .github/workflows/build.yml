@@ -1,3 +1,12 @@
+# NOTE:
+# This build workflow works correctly, but PyInstaller on macOS and on GitHub
+# Actions runners produces app bundles that are significantly larger than expected.
+# The macOS builds contain duplicated framework and dependency files instead of
+# using symlinks, which greatly increases the final bundle size. Local macOS builds
+# created on a developer machine are much smaller, but GitHub's macOS runners
+# do not replicate this behavior. This appears to be related to how PyInstaller
+# resolves and packages system frameworks in the CI environment.
+
 name: Build Collage Releases
 
 on:
@@ -93,7 +102,6 @@ jobs:
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow pyinstaller
 
-
       - name: Build Collage.exe
         shell: pwsh
         run: |
@@ -108,21 +116,15 @@ jobs:
 
           $zip = "Collage-windows-x64-$env:VERSION.zip"
 
-          # Sicherstellen, dass das ZIP nicht schon existiert
-          if (Test-Path "dist\$zip") {
-              Remove-Item "dist\$zip" -Force
+          if (Test-Path "dist\$zip") { Remove-Item "dist\$zip" -Force }
+
+          # Find 7zip
+          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
+          if (!(Test-Path $sevenZip)) {
+            $sevenZip = "C:\Program Files (x86)\7-Zip\7z.exe"
           }
 
-          # AUF KEINEN FALL innerhalb von 'dist' packen!!!
-          # Das verursacht das Self-ZIP-Problem.
-
-          Compress-Archive `
-              -Path "dist/Collage.exe" `
-              -DestinationPath $zip `
-              -Force
-
-          # ZIP in den dist Ordner verschieben
-          Move-Item $zip "dist/$zip" -Force
+          & $sevenZip a "dist\$zip" "dist\Collage.exe"
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
