@@ -1,4 +1,4 @@
-# Mike's Collage
+# Collage
 
 <img src="app/resources/title512.png" width="200" height="200" alt="Collage Logo">
 
