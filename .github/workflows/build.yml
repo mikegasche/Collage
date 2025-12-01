@@ -13,7 +13,7 @@ jobs:
   build-macos:
     strategy:
       matrix:
-        os: [macos-13, macos-latest]
+        os: [macos-15-intel, macos-latest]
     runs-on: ${{ matrix.os }}
     name: Build macOS (${{ matrix.os }})
     steps:
@@ -33,57 +33,32 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip setuptools wheel
-          pip install PySide6 pillow pyinstaller
+          pip install PySide6 pillow
+          pip install pyinstaller==6.14.2
 
       - name: Build Collage.app
         run: |
           source venv/bin/activate
           rm -rf build dist Collage.spec
 
+          if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
+            TARGET_ARCH="x86_64"
+          else
+            TARGET_ARCH="arm64"
+          fi
+
           pyinstaller --name "Collage" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
+            --clean \
+            --noconfirm \
+            --target-arch $TARGET_ARCH \
             app/collage_gui.py
-
-      ###################################################################
-      # ✅ CLEANUP-SCHRITT: Doppelte Dateien aus Resources in Symlinks umwandeln
-      #    Frameworks bleiben unverändert, nur Resources wird angepasst
-      ###################################################################
-      - name: Cleanup duplicated framework resources (symlink mode)
-        run: |
-          APP="dist/Collage.app"
-          FW="$APP/Contents/Frameworks"
-          RES="$APP/Contents/Resources"
-
-          echo "=== SYMLINK CLEANUP START ==="
-
-          KEEP_REGEX="PySide6|resources"
-
-          for entry in "$RES"/*; do
-              name=$(basename "$entry")
-              
-              # Ausnahmen überspringen
-              if [[ $name =~ $KEEP_REGEX ]]; then
-                  echo "Skipping $name"
-                  continue
-              fi
-
-              fw_path="$FW/$name"
-
-              # Nur wenn Datei/Ordner in Frameworks existiert
-              if [[ -e "$fw_path" ]]; then
-                  echo "Replacing $name in Resources with symlink to Frameworks"
-                  rm -rf "$entry" || { echo "Failed to remove $entry"; exit 1; }
-                  ln -s "../Frameworks/$name" "$RES/$name" || { echo "Failed to symlink $name"; exit 1; }
-              fi
-          done
-
-          echo "=== SYMLINK CLEANUP END ==="
 
       - name: Zip Collage.app
         run: |
           cd dist
-          if [[ "${{ matrix.os }}" == "macos-13" ]]; then
+          if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
             ZIP_BASENAME="Collage-macos-x64-${{ env.VERSION }}"
           else
             ZIP_BASENAME="Collage-macos-arm64-${{ env.VERSION }}"
