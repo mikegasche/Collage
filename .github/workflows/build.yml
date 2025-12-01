@@ -51,7 +51,6 @@ jobs:
       ###################################################################
       - name: Cleanup duplicated framework resources (symlink mode)
         run: |
-
           APP="dist/Collage.app"
           FW="$APP/Contents/Frameworks"
           RES="$APP/Contents/Resources"
@@ -65,6 +64,7 @@ jobs:
               
               # Ausnahmen überspringen
               if [[ $name =~ $KEEP_REGEX ]]; then
+                  echo "Skipping $name"
                   continue
               fi
 
@@ -73,8 +73,8 @@ jobs:
               # Nur wenn Datei/Ordner in Frameworks existiert
               if [[ -e "$fw_path" ]]; then
                   echo "Replacing $name in Resources with symlink to Frameworks"
-                  rm -rf "$entry"
-                  ln -s "../Frameworks/$name" "$RES/$name"
+                  rm -rf "$entry" || { echo "Failed to remove $entry"; exit 1; }
+                  ln -s "../Frameworks/$name" "$RES/$name" || { echo "Failed to symlink $name"; exit 1; }
               fi
           done
 
