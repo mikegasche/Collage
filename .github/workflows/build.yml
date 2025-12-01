@@ -45,6 +45,34 @@ jobs:
             --add-data "app/resources:resources" \
             app/collage_gui.py
 
+          ###########################################
+          ### BEGIN: REMOVE DUPLICATE FRAMEWORK FILES
+          ###########################################
+          echo "==> Checking for duplicate files in Frameworks..."
+
+          APP="dist/Collage.app/Contents"
+
+          if [[ -d "$APP/Frameworks" ]]; then
+            find "$APP/Frameworks" -type f | while read -r FW_FILE; do
+              BASENAME=$(basename "$FW_FILE")
+              RES_FILE="$APP/Resources/$BASENAME"
+
+              if [[ -f "$RES_FILE" ]]; then
+                echo "Removing duplicate: $FW_FILE"
+                rm "$FW_FILE"
+              fi
+            done
+
+            echo "Removing empty Frameworks directories..."
+            find "$APP/Frameworks" -type d -empty -delete
+          else
+            echo "No Frameworks directory found!"
+          fi
+
+          ###########################################
+          ### END: REMOVE DUPLICATE FRAMEWORK FILES
+          ###########################################
+
           cd dist
           if [[ "${{ matrix.os }}" == "macos-13" ]]; then
             ZIP_NAME="Collage-macos-x64-${{ env.VERSION }}.zip"
