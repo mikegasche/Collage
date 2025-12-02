@@ -16,6 +16,10 @@ The app offers both a **Graphical User Interface (GUI)** and **CLI options**.
 - CLI for automated workflows  
 - Flexible layout with configurable rows and iterations  
 
+## Example
+
+![Collage Example](.github/assets/collage.webp)
+
 ## Installation
 
 1. **See** `bin/setup.sh`
@@ -47,7 +51,7 @@ python3 app/collage_gui.py
 
 3. Click **Run** to generate the collage.
 
----
+![Collage Example](.github/assets/screen.webp)
 
 ## CLI Usage
 
