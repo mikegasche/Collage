@@ -17,6 +17,9 @@ on:
 
 env:
   VERSION: 1.0.0
+  PYTHON_VERSION: 3.11.9
+  DIST_DIR: dist
+  BIN_NAME: Collage
 
 jobs:
   build-macos:
@@ -29,14 +32,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11.9 via pyenv
+      - name: Setup Python 3.11.9 via pyenv (macOS)
         run: |
           brew install pyenv || true
-          pyenv install -s 3.11.9
-          pyenv local 3.11.9
+          pyenv install -s ${{ env.PYTHON_VERSION }}
+          pyenv local ${{ env.PYTHON_VERSION }}
           python --version
 
-      - name: Create minimal venv
+      - name: Create minimal venv (macOS)
         run: |
           rm -rf venv
           python -m venv venv
@@ -45,10 +48,10 @@ jobs:
           pip install PySide6 pillow
           pip install pyinstaller
 
-      - name: Build Collage.app
+      - name: Build Collage.app (macOS)
         run: |
           source venv/bin/activate
-          rm -rf build dist Collage.spec
+          rm -rf build dist ${{ env.BIN_NAME }}.spec
 
           if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
             TARGET_ARCH="x86_64"
@@ -56,7 +59,7 @@ jobs:
             TARGET_ARCH="arm64"
           fi
 
-          pyinstaller --name "Collage" --windowed \
+          pyinstaller --name "${{ env.BIN_NAME }}" --windowed \
             --icon "app/resources/app_icon.icns" \
             --add-data "app/resources:resources" \
             --clean \
@@ -64,22 +67,21 @@ jobs:
             --target-arch $TARGET_ARCH \
             app/collage_gui.py
 
-      - name: Zip Collage.app
+      - name: Prepare Artifact Contents (macOS)
         run: |
-          cd dist
           if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
-            ZIP_BASENAME="Collage-macos-x64-${{ env.VERSION }}"
+            ZIP_BASENAME="Collage-macos-${{ env.VERSION }}-x64"
           else
-            ZIP_BASENAME="Collage-macos-arm64-${{ env.VERSION }}"
+            ZIP_BASENAME="Collage-macos-${{ env.VERSION }}-arm64"
           fi
-          zip -r "$ZIP_BASENAME.zip" Collage.app
           echo "ZIP_BASENAME=$ZIP_BASENAME" >> $GITHUB_ENV
+        shell: bash
 
-      - name: Upload macOS artifact
+      - name: Upload artifact (macOS)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP_BASENAME }}
-          path: dist/${{ env.ZIP_BASENAME }}.zip
+          path: ${{ env.DIST_DIR }}
 
   build-windows:
     runs-on: windows-latest
@@ -93,7 +95,7 @@ jobs:
         with:
           python-version: 3.11.9
 
-      - name: Create minimal venv
+      - name: Create minimal venv (Windows)
         shell: pwsh
         run: |
           Remove-Item -Recurse -Force venv -ErrorAction SilentlyContinue
@@ -102,32 +104,26 @@ jobs:
           pip install --upgrade pip setuptools wheel
           pip install PySide6 pillow pyinstaller
 
-      - name: Build Collage.exe
+      - name: Build Collage.exe (Windows)
         shell: pwsh
         run: |
           .\venv\Scripts\Activate.ps1
           Remove-Item -Recurse -Force build, dist, Collage.spec -ErrorAction SilentlyContinue
 
-          pyinstaller --name "Collage" --windowed `
+          pyinstaller --name "${{ env.BIN_NAME }}" --windowed `
             --onefile `
             --icon "app/resources/app_icon.ico" `
             --add-data "app/resources;resources" `
             app/collage_gui.py
 
-          $zip = "Collage-windows-x64-$env:VERSION.zip"
+      - name: Prepare Artifact Contents (Windows)
+        run: |
+          $ZIP_BASENAME = "Collage-${{ env.VERSION }}-windows-x64"
+          "ZIP_BASENAME=$ZIP_BASENAME" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        shell: pwsh
 
-          if (Test-Path "dist\$zip") { Remove-Item "dist\$zip" -Force }
-
-          # Find 7zip
-          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
-          if (!(Test-Path $sevenZip)) {
-            $sevenZip = "C:\Program Files (x86)\7-Zip\7z.exe"
-          }
-
-          & $sevenZip a -spf2 "dist\$zip" ".\dist\Collage.exe"
-
-      - name: Upload Windows artifact
+      - name: Upload Windows artifact (Windows)
         uses: actions/upload-artifact@v4
         with:
-          name: Collage-windows-x64-${{ env.VERSION }}
-          path: dist/Collage-windows-x64-${{ env.VERSION }}.zip
+          name: ${{ env.ZIP_BASENAME }}
+          path: ${{ env.DIST_DIR }}
