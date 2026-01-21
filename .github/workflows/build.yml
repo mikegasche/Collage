@@ -32,12 +32,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11.9 via pyenv (macOS)
-        run: |
-          brew install pyenv || true
-          pyenv install -s ${{ env.PYTHON_VERSION }}
-          pyenv local ${{ env.PYTHON_VERSION }}
-          python --version
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Create minimal venv (macOS)
         run: |
@@ -73,9 +71,9 @@ jobs:
           rm -rf Collage
           cd ..
           if [[ "${{ matrix.os }}" == "macos-15-intel" ]]; then
-            ZIP_BASENAME="Collage-macos-${{ env.VERSION }}-x64"
+            ZIP_BASENAME="Collage-macos-x64-${{ env.VERSION }}"
           else
-            ZIP_BASENAME="Collage-macos-${{ env.VERSION }}-arm64"
+            ZIP_BASENAME="Collage-macos-arm64-${{ env.VERSION }}"
           fi
           echo "ZIP_BASENAME=$ZIP_BASENAME" >> $GITHUB_ENV
         shell: bash
@@ -93,10 +91,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11.9
+      - name: Setup Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11.9
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Create minimal venv (Windows)
         shell: pwsh
@@ -121,7 +119,7 @@ jobs:
 
       - name: Prepare Artifact Contents (Windows)
         run: |
-          $ZIP_BASENAME = "Collage-${{ env.VERSION }}-windows-x64"
+          $ZIP_BASENAME = "Collage-windows-x64-${{ env.VERSION }}"
           "ZIP_BASENAME=$ZIP_BASENAME" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         shell: pwsh
 
